@@ -2,7 +2,9 @@ import { get, put, list } from '@vercel/blob';
 import { rpc } from '@/lib/inventory';
 import { type DailyReport, type DailyProduct, validDate } from '@/lib/daily-model';
 const prefix='kmed-daily/';
-export function blobConfigured(){return !!(process.env.BLOB_READ_WRITE_TOKEN || (process.env.BLOB_STORE_ID&&process.env.VERCEL_OIDC_TOKEN));}
+// The SDK resolves OIDC from Vercel request context as well as environment variables.
+// Do not require VERCEL_OIDC_TOKEN in process.env before allowing SDK authentication.
+export function blobConfigured(){return !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);}
 function ensure(){if(!blobConfigured())throw Error('일별 재고 저장소가 아직 연결되지 않았습니다. 관리자에게 문의해 주세요.');}
 export async function readDaily(date:string):Promise<DailyReport|null>{
   ensure();if(!validDate(date))throw Error('날짜를 확인해 주세요.');

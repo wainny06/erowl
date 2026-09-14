@@ -10,6 +10,8 @@ function load(file,mocks={}){const exports={};const code=ts.transpileModule(fs.r
  get:async path=>files.has(path)?{statusCode:200,stream:new Response(files.get(path)).body}:null,
  put:async(path,data,opts)=>{assert.equal(opts.access,'private');assert.equal(opts.allowOverwrite,false);if(files.has(path))throw Error('exists');files.set(path,data);},
  list:async()=>({blobs:[...files.keys()].map(pathname=>({pathname})),hasMore:false})}});
+ delete process.env.BLOB_READ_WRITE_TOKEN;delete process.env.VERCEL_OIDC_TOKEN;process.env.BLOB_STORE_ID='store_test';assert(daily.blobConfigured());
+ delete process.env.BLOB_STORE_ID;assert(!daily.blobConfigured());process.env.BLOB_STORE_ID='store_test';
  const first=await daily.captureDaily('2026-09-14','scheduled');assert(first.created);assert.equal(first.report.products[0].quantity,5);assert.equal(first.report.products.filter(p=>p.inventory_group==='treatment').length,29);assert.equal(first.report.products.filter(p=>p.inventory_group==='pharmacopuncture').length,9);assert.equal(first.report.products.find(p=>p.name==='태반').unit,'바이알');assert(first.report.products.some(p=>p.name==='알콜'));assert.equal(first.report.products[0].inventory_group,'medicine');
  inventory.products[0].quantity=99;const second=await daily.captureDaily('2026-09-14','scheduled');assert(!second.created);assert.equal(second.report.products[0].quantity,5);assert.equal(calls,1);
  fail=true;await assert.rejects(()=>daily.captureDaily('2026-09-15','scheduled'));assert.equal(files.size,1);
