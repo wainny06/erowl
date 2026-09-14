@@ -1,6 +1,6 @@
 import { captureDaily } from '@/lib/daily';
 import { previousKoreanDate } from '@/lib/daily-model';
-import { json, safeEqual } from '@/lib/auth';
+import { json, safeEqual } from '@/lib/http';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export const maxDuration=60;

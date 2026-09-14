@@ -1,10 +1,10 @@
 import { listDaily, readDaily } from '@/lib/daily';
 import { reportCsv, validDate } from '@/lib/daily-model';
-import { json, sessionError } from '@/lib/auth';
+import { json } from '@/lib/http';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
 export async function GET(req:Request){
-  const denied=await sessionError();if(denied)return denied;
+  
   try{const u=new URL(req.url),date=u.searchParams.get('date');
     if(!date)return json({reports:await listDaily()});
     if(!validDate(date))return json({error:'날짜를 확인해 주세요.'},400);

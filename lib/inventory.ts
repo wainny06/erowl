@@ -1,6 +1,6 @@
-import { json as reply } from '@/lib/auth';
+import { json as reply } from '@/lib/http';
 export async function rpc(name:string,body:unknown){
- const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY;
+ const url=process.env.SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
  if(!url||!key)return reply({error:'관리자의 재고 저장소 연결 설정이 필요합니다.'},503);
  try{
   const r=await fetch(`${url.replace(/\/$/,'')}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:key,...(key.startsWith('eyJ')?{Authorization:`Bearer ${key}`} : {}),'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(15000)});
