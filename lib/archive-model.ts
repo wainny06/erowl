@@ -1,9 +1,12 @@
+export type InventoryGroup='all'|'medicine'|'treatment'|'pharmacopuncture';
+export const inventoryGroupLabels={all:'전체 품목',medicine:'기존 약품',treatment:'치료실 물품',pharmacopuncture:'약침'};
+export function validGroup(value:unknown):value is InventoryGroup{return typeof value==='string'&&Object.hasOwn(inventoryGroupLabels,value);}
 export type ArchiveSource='legacy'|'daily';
-export type ArchiveRow={id?:string;name:string;category:string;quantity:number|null;unit:string};
+export type ArchiveRow={inventory_group?:string;id?:string;name:string;category:string;quantity:number|null;unit:string};
 export type ArchiveRecord={date:string;rows:ArchiveRow[];capturedAt?:string};
 export type ChangeRow=ArchiveRow & {key:string;previous:number|null;change:number|null;status:string};
 export function compareRecords(current:ArchiveRecord,previous:ArchiveRecord|null,source:ArchiveSource):ChangeRow[]{
- const key=(r:ArchiveRow)=>source==='daily'?r.id??r.name:r.name.trim().normalize('NFC');
+ const key=(r:ArchiveRow)=>source==='daily'?r.id??r.name:`${r.inventory_group??'medicine'}:${r.name.trim().normalize('NFC')}`;
  const group=(rows:ArchiveRow[])=>{const map=new Map<string,ArchiveRow[]>();for(const r of rows){const k=key(r);map.set(k,[...(map.get(k)||[]),r]);}return map;};
  const before=group(previous?.rows||[]),after=group(current.rows);
  const keys=[...new Set([...after.keys(),...before.keys()])];

@@ -1,17 +1,17 @@
 import { get, list, put } from '@vercel/blob';
 import { blobConfigured } from '@/lib/daily';
 import { validDate } from '@/lib/daily-model';
-import type { ArchiveSource } from '@/lib/archive-model';
+import { validGroup, type InventoryGroup, type ArchiveSource } from '@/lib/archive-model';
 const root='kmed-archive-deleted/';
-function path(source:ArchiveSource,date:string){if(!['legacy','daily'].includes(source)||!validDate(date))throw Error('Invalid archive identifier');return `${root}${source}/${date}.json`;}
-export async function deletedDates(source:ArchiveSource){
+function path(source:ArchiveSource,date:string,group:InventoryGroup='all'){if(!validGroup(group))throw Error('Invalid group');if(!['legacy','daily'].includes(source)||!validDate(date))throw Error('Invalid archive identifier');return `${root}${source}/${group==='all'?'':group+'/'}${date}.json`;}
+export async function deletedDates(source:ArchiveSource,group:InventoryGroup='all'){
  const dates=new Set<string>();if(!blobConfigured())return dates;
- let cursor:string|undefined;const prefix=`${root}${source}/`;
+ let cursor:string|undefined;const prefix=`${root}${source}/${group==='all'?'':group+'/'}`;
  do{const page=await list({prefix,limit:1000,cursor});for(const b of page.blobs){const date=b.pathname.slice(prefix.length).replace(/\.json$/,'');if(validDate(date))dates.add(date);}cursor=page.hasMore?page.cursor:undefined;}while(cursor);
  return dates;
 }
-export async function markDeleted(source:ArchiveSource,date:string){
- if(!blobConfigured())throw Error('Blob not connected');const pathname=path(source,date);
+export async function markDeleted(source:ArchiveSource,date:string,group:InventoryGroup='all'){
+ if(!blobConfigured())throw Error('Blob not connected');const pathname=path(source,date,group);
  // A separate immutable marker per date avoids concurrent deletion lost updates.
  const options={access:'private' as const,useCache:false};
  if(await get(pathname,options))return;
