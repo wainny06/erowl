@@ -1,0 +1,31 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const ts=require('typescript');
+function load(file,mocks={}){const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,require:n=>n in mocks?mocks[n]:require(n),process,console,Response,Request,Date,Map,Set,Buffer,URL,AbortSignal,setTimeout});return exports;}
+(async()=>{
+ const model=load('lib/archive-model.ts'),dates=load('lib/daily-model.ts');
+ const row=(name,quantity,extra={})=>({name,quantity,category:'환',unit:'통',...extra});
+ const previous={date:'2026-09-10',rows:[row('A',3),row('B',null),row('C',5),row('D',2),row('E',2)]};
+ const current={date:'2026-09-14',rows:[row('A',1),row('B',2),row('D',2,{unit:'개'}),row('E',2),row('F',7)]};
+ const delta=model.compareRecords(current,previous,'legacy');
+ assert.equal(delta.find(r=>r.name==='A').change,-2);assert.equal(delta.find(r=>r.name==='B').change,null);assert.equal(delta.find(r=>r.name==='C').status,'이번 기록에 없음');assert.equal(delta.find(r=>r.name==='C').quantity,null);assert.equal(delta.find(r=>r.name==='D').change,null);assert.equal(delta.find(r=>r.name==='E').change,0);assert.equal(delta.find(r=>r.name==='F').status,'새로 기록됨');
+ assert(model.compareRecords(current,null,'legacy').every(r=>r.change===null));
+ const renamed=model.compareRecords({date:'2026-09-14',rows:[row('Renamed',5,{id:'p1'})]},{date:'2026-09-10',rows:[row('Original',3,{id:'p1'})]},'daily');assert.equal(renamed[0].change,2);
+ const dup=model.compareRecords({date:'2026-09-14',rows:[row('A',1),row('A',2)]},previous,'legacy');assert(dup.filter(r=>r.name==='A').every(r=>r.change===null));
+ const csv=model.comparisonCsv(current.date,previous.date,[{...delta[0],name:'=BAD()'}]);assert(csv.includes("'=BAD()"));assert(csv.includes(previous.date));
+ const files=new Map();let puts=0,fail=false;
+ const blob={get:async p=>{if(fail)throw Error('offline');return files.has(p)?{statusCode:200}:null},put:async(p,s,o)=>{puts++;assert.equal(o.access,'private');assert.equal(o.allowOverwrite,false);if(fail)throw Error('offline');if(files.has(p))throw Error('exists');files.set(p,s);},list:async({prefix})=>{if(fail)throw Error('offline');return {blobs:[...files.keys()].filter(p=>p.startsWith(prefix)).map(pathname=>({pathname})),hasMore:false};}};
+ const removals=load('lib/archive-deletions.ts',{'@vercel/blob':blob,'@/lib/daily':{blobConfigured:()=>true},'@/lib/daily-model':dates});
+ await removals.markDeleted('legacy','2026-09-10');await removals.markDeleted('legacy','2026-09-10');assert.equal(puts,1);assert((await removals.deletedDates('legacy')).has('2026-09-10'));assert.equal((await removals.deletedDates('daily')).size,0);await assert.rejects(()=>removals.markDeleted('legacy','../secret'));
+ const legacy=[{date:'2026-09-14',rows:current.rows},{date:'2026-09-10',rows:previous.rows},{date:'2026-09-09',rows:previous.rows}];
+ const archive=load('lib/archive.ts',{'@/data/archive.json':{default:legacy},'@/lib/daily':{blobConfigured:()=>true,listDaily:async()=>[],readDaily:async()=>null},'@/lib/archive-deletions':removals});
+ assert.equal((await archive.archiveIndex('legacy')).records.length,2);
+ const api=load('app/api/archive/route.ts',{'@/lib/archive':archive,'@/lib/archive-model':model,'@/lib/http':load('lib/http.ts'),'@/lib/daily-model':dates});
+ const result=await (await api.GET(new Request('http://localhost/api/archive?date=2026-09-14'))).json();assert.equal(result.baseline,'2026-09-09');
+ assert.equal((await api.GET(new Request('http://localhost/api/archive?date=2026-09-10'))).status,404);
+ assert.equal((await api.GET(new Request('http://localhost/api/archive?date=2026-09-14&baseline=2026-09-14'))).status,400);
+ const del=(body,origin='http://localhost')=>api.DELETE(new Request('http://localhost/api/archive',{method:'DELETE',headers:{origin,host:'localhost'},body:JSON.stringify(body)}));
+ assert.equal((await del({source:'legacy',date:'2026-09-14',confirm:'wrong'})).status,400);assert.equal((await del({source:'legacy',date:'2026-09-14',confirm:'2026-09-14'},'https://evil.example')).status,403);
+ fail=true;assert.equal((await del({source:'legacy',date:'2026-09-14',confirm:'2026-09-14'})).status,503);assert.equal(files.size,1);fail=false;
+ assert.equal((await del({source:'legacy',date:'2026-09-14',confirm:'2026-09-14'})).status,200);assert.equal((await api.GET(new Request('http://localhost/api/archive?date=2026-09-14'))).status,404);
+ assert.equal(legacy.length,3);assert.equal(legacy[0].rows[0].quantity,1);
+ console.log('PASS: signed deltas, missing/duplicate/unit/rename cases, CSV, persistent idempotent deletion, source isolation, deleted-baseline selection, failed writes and origin/confirmation checks.');
+})().catch(e=>{console.error(e);process.exitCode=1});
