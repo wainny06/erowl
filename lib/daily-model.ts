@@ -1,4 +1,4 @@
-export type DailyProduct={id:string;name:string;category:string;quantity:number;minimum:number|null;unit:string;note:string};
+export type DailyProduct={inventory_group?:string;id:string;name:string;category:string;quantity:number;minimum:number|null;unit:string;note:string};
 export type DailyReport={version:1;date:string;capturedAt:string;source:'scheduled'|'manual';products:DailyProduct[]};
 export const koreanDate=(now=new Date())=>new Date(now.getTime()+9*3600000).toISOString().slice(0,10);
 export const previousKoreanDate=(now=new Date())=>koreanDate(new Date(now.getTime()-86400000));
