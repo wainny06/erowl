@@ -143,3 +143,5 @@ body{font-family: 'Pretendard','Noto Sans KR','Apple SD Gothic Neo','Malgun Goth
 .single-inventory-board .stock-column-head.treatment-double-head{grid-template-columns:minmax(0,1fr) 90px 76px 76px minmax(0,1fr) 90px 76px 76px;column-gap:4px}
 .treatment-double-head>span:nth-child(5){text-align:left;padding-left:12px}
 @media(max-width:699px){.single-inventory-board .group-4 .stock-column-body{grid-template-columns:minmax(0,1fr)}.single-inventory-board .stock-column-head.treatment-double-head{grid-template-columns:minmax(0,1fr) 55px 65px 65px}.treatment-double-head .second-head{display:none}}
+
+.workspace .metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
