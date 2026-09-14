@@ -136,3 +136,10 @@ body{font-family: 'Pretendard','Noto Sans KR','Apple SD Gothic Neo','Malgun Goth
 .single-inventory-board .stock-unit{margin:0}
 .single-inventory-board .stock-column-head,.single-inventory-board .stock-item{grid-template-columns:minmax(0,1fr) 90px 76px 76px}
 @media(max-width:699px){.single-inventory-board{grid-template-columns:minmax(0,1fr)}.single-inventory-board .stock-column-head,.single-inventory-board .stock-item{grid-template-columns:minmax(0,1fr) 55px 65px 65px}}
+
+.single-inventory-board .group-4{grid-column:1 / -1}
+.single-inventory-board .group-4 .stock-column-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px}
+.single-inventory-board .group-4 .stock-subsection{grid-column:1 / -1;margin:0}
+.single-inventory-board .stock-column-head.treatment-double-head{grid-template-columns:minmax(0,1fr) 90px 76px 76px minmax(0,1fr) 90px 76px 76px;column-gap:4px}
+.treatment-double-head>span:nth-child(5){text-align:left;padding-left:12px}
+@media(max-width:699px){.single-inventory-board .group-4 .stock-column-body{grid-template-columns:minmax(0,1fr)}.single-inventory-board .stock-column-head.treatment-double-head{grid-template-columns:minmax(0,1fr) 55px 65px 65px}.treatment-double-head .second-head{display:none}}
